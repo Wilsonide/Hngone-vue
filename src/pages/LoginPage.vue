@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Layout from "@/components/Layout.vue";
 import { useRouter } from "vue-router";
-import { useForm, defineField } from "vee-validate";
+import { useForm, useField } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { loginSchema, type LoginData } from "@/types/auth";
 import { toast } from "vue-sonner";
@@ -9,18 +9,15 @@ import { toast } from "vue-sonner";
 const router = useRouter();
 
 // Initialize form with Zod validation
-const {
-  handleSubmit,
-  errors,
-  defineField: define,
-} = useForm<LoginData>({
+const { handleSubmit, errors } = useForm<LoginData>({
   validationSchema: toTypedSchema(loginSchema),
 });
 
 // Writable fields
-const [email, emailProps] = define("email");
-const [password, passwordProps] = define("password");
+const { value: email } = useField<LoginData["email"]>("email");
+const { value: password } = useField<LoginData["password"]>("password");
 
+// Handle form submission
 const onSubmit = handleSubmit((data) => {
   try {
     const stored = localStorage.getItem("ticketapp_users");
@@ -59,9 +56,9 @@ const onSubmit = handleSubmit((data) => {
             <label class="block text-gray-700 mb-1">Email</label>
             <input
               v-model="email"
-              v-bind="emailProps"
               type="email"
               placeholder="you@example.com"
+              autocomplete="email"
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"
             />
             <p v-if="errors.email" class="text-red-600 text-sm mt-1">
@@ -74,9 +71,9 @@ const onSubmit = handleSubmit((data) => {
             <label class="block text-gray-700 mb-1">Password</label>
             <input
               v-model="password"
-              v-bind="passwordProps"
               type="password"
               placeholder="Enter password"
+              autocomplete="current-password"
               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"
             />
             <p v-if="errors.password" class="text-red-600 text-sm mt-1">

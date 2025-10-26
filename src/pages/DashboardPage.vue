@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Layout from "@/components/Layout.vue";
 import { ref, onMounted } from "vue";
-import { toast } from "vue-sonner";
 import { useRouter } from "vue-router";
 
 const router = useRouter();

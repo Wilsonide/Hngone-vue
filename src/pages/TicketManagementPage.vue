@@ -24,8 +24,6 @@ const newTicket = ref<Ticket>({
   status: "open",
 });
 const createErrors = ref<{ title?: string }>({});
-
-// Edit form errors
 const editErrors = ref<{ title?: string }>({});
 
 // Load tickets
@@ -96,9 +94,12 @@ function updateTicket() {
     });
     return;
   }
+
+  // ✅ Non-null assertion fixes TS error
   const updated = tickets.value.map((t) =>
-    t.id === editTicket.value?.id ? editTicket.value : t
+    t.id === editTicket.value!.id ? editTicket.value! : t
   );
+
   saveTickets(updated);
   showEditBox.value = false;
   editTicket.value = null;
@@ -108,16 +109,14 @@ function updateTicket() {
   });
 }
 
-// Status color helper
-function statusColor(status: string) {
-  switch (status) {
-    case "open":
-      return "bg-green-100 text-green-700";
-    case "in_progress":
-      return "bg-yellow-100 text-yellow-700";
-    case "closed":
-      return "bg-gray-100 text-gray-700";
-  }
+// Status color helper (typed)
+function statusColor(status: Ticket["status"]) {
+  const colors: Record<Ticket["status"], string> = {
+    open: "bg-green-100 text-green-700",
+    in_progress: "bg-yellow-100 text-yellow-700",
+    closed: "bg-gray-100 text-gray-700",
+  };
+  return colors[status];
 }
 </script>
 
