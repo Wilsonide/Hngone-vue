@@ -17,6 +17,9 @@ const tickets = ref<Ticket[]>([]);
 const showEditBox = ref(false);
 const editTicket = ref<Ticket | null>(null);
 
+// Separate ref for template-safe editing
+const editForm = ref<Ticket>({ title: "", description: "", status: "open" });
+
 // Form for creating new ticket
 const newTicket = ref<Ticket>({
   title: "",
@@ -78,6 +81,7 @@ function deleteTicket(id: string) {
 // Open edit box
 function openEditBox(ticket: Ticket) {
   editTicket.value = { ...ticket };
+  editForm.value = { ...ticket }; // copy for safe editing
   editErrors.value = {};
   showEditBox.value = true;
 }
@@ -85,8 +89,9 @@ function openEditBox(ticket: Ticket) {
 // Update ticket with validation
 function updateTicket() {
   if (!editTicket.value) return;
+
   editErrors.value = {};
-  if (!editTicket.value.title?.trim()) {
+  if (!editForm.value.title?.trim()) {
     editErrors.value.title = "Title is required";
     toast.error("Title is required", {
       duration: 2000,
@@ -95,9 +100,10 @@ function updateTicket() {
     return;
   }
 
-  // ✅ Non-null assertion fixes TS error
   const updated = tickets.value.map((t) =>
-    t.id === editTicket.value!.id ? editTicket.value! : t
+    t.id === editTicket.value!.id
+      ? { ...editForm.value, id: editTicket.value!.id }
+      : t
   );
 
   saveTickets(updated);
@@ -109,7 +115,7 @@ function updateTicket() {
   });
 }
 
-// Status color helper (typed)
+// Status color helper
 function statusColor(status: Ticket["status"]) {
   const colors: Record<Ticket["status"], string> = {
     open: "bg-green-100 text-green-700",
