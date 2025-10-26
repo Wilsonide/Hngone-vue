@@ -16,11 +16,8 @@ const router = useRouter();
 const tickets = ref<Ticket[]>([]);
 const showEditBox = ref(false);
 const editTicket = ref<Ticket | null>(null);
-
-// Separate ref for template-safe editing
 const editForm = ref<Ticket>({ title: "", description: "", status: "open" });
 
-// Form for creating new ticket
 const newTicket = ref<Ticket>({
   title: "",
   description: "",
@@ -29,7 +26,6 @@ const newTicket = ref<Ticket>({
 const createErrors = ref<{ title?: string }>({});
 const editErrors = ref<{ title?: string }>({});
 
-// Load tickets
 onMounted(() => {
   const session = localStorage.getItem("ticketapp_session");
   if (!session) {
@@ -46,7 +42,6 @@ function saveTickets(updated: Ticket[]) {
   localStorage.setItem("ticketapp_tickets", JSON.stringify(updated));
 }
 
-// Create ticket with validation
 function createTicket() {
   createErrors.value = {};
   if (!newTicket.value.title.trim()) {
@@ -66,7 +61,6 @@ function createTicket() {
   });
 }
 
-// Delete ticket
 function deleteTicket(id: string) {
   if (confirm("Delete this ticket?")) {
     const updated = tickets.value.filter((t) => t.id !== id);
@@ -78,7 +72,6 @@ function deleteTicket(id: string) {
   }
 }
 
-// Open edit box
 function openEditBox(ticket: Ticket) {
   editTicket.value = { ...ticket };
   editForm.value = { ...ticket }; // copy for safe editing
@@ -86,7 +79,6 @@ function openEditBox(ticket: Ticket) {
   showEditBox.value = true;
 }
 
-// Update ticket with validation
 function updateTicket() {
   if (!editTicket.value) return;
 
@@ -115,7 +107,6 @@ function updateTicket() {
   });
 }
 
-// Status color helper
 function statusColor(status: Ticket["status"]) {
   const colors: Record<Ticket["status"], string> = {
     open: "bg-green-100 text-green-700",
@@ -128,9 +119,7 @@ function statusColor(status: Ticket["status"]) {
 
 <template>
   <Layout>
-    <!-- Global Toaster for Sonner -->
     <Toaster position="top-center" rich-colors expand />
-
     <section class="py-16 max-w-[1440px] mx-auto px-6">
       <h1 class="text-3xl font-bold text-blue-700 mb-10 text-center">
         Ticket Management
@@ -143,7 +132,6 @@ function statusColor(status: Ticket["status"]) {
         <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">
           Create New Ticket
         </h2>
-
         <form @submit.prevent="createTicket" class="space-y-4">
           <div>
             <input
@@ -160,14 +148,12 @@ function statusColor(status: Ticket["status"]) {
               {{ createErrors.title }}
             </p>
           </div>
-
           <textarea
             v-model="newTicket.description"
             placeholder="Description (optional)"
             rows="3"
             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
           ></textarea>
-
           <select
             v-model="newTicket.status"
             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
@@ -176,7 +162,6 @@ function statusColor(status: Ticket["status"]) {
             <option value="in_progress">In Progress</option>
             <option value="closed">Closed</option>
           </select>
-
           <button
             type="submit"
             class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
@@ -194,7 +179,6 @@ function statusColor(status: Ticket["status"]) {
         >
           No tickets available.
         </div>
-
         <div
           v-for="ticket in tickets"
           :key="ticket.id"
@@ -206,8 +190,8 @@ function statusColor(status: Ticket["status"]) {
                 {{ ticket.title }}
               </h3>
               <span
-                class="px-3 py-1 rounded-full text-sm font-medium"
                 :class="statusColor(ticket.status)"
+                class="px-3 py-1 rounded-full text-sm font-medium"
               >
                 {{ ticket.status.replace("_", " ") }}
               </span>
@@ -216,7 +200,6 @@ function statusColor(status: Ticket["status"]) {
               {{ ticket.description }}
             </p>
           </div>
-
           <div class="flex justify-end gap-2 mt-4">
             <button
               class="px-4 py-1 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
@@ -234,7 +217,7 @@ function statusColor(status: Ticket["status"]) {
         </div>
       </div>
 
-      <!-- Shadow Edit Dropbox -->
+      <!-- Edit Modal -->
       <transition name="fade">
         <div
           v-if="showEditBox"
@@ -249,15 +232,13 @@ function statusColor(status: Ticket["status"]) {
             >
               ✕
             </button>
-
             <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">
               Edit Ticket
             </h3>
-
             <form @submit.prevent="updateTicket" class="space-y-4">
               <div>
                 <input
-                  v-model="editTicket.title"
+                  v-model="editForm.title"
                   placeholder="Title"
                   :class="[
                     'w-full border rounded-lg p-2 focus:ring-2',
@@ -270,23 +251,20 @@ function statusColor(status: Ticket["status"]) {
                   {{ editErrors.title }}
                 </p>
               </div>
-
               <textarea
-                v-model="editTicket.description"
+                v-model="editForm.description"
                 placeholder="Description"
                 rows="3"
                 class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
               ></textarea>
-
               <select
-                v-model="editTicket.status"
+                v-model="editForm.status"
                 class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
               >
                 <option value="open">Open</option>
                 <option value="in_progress">In Progress</option>
                 <option value="closed">Closed</option>
               </select>
-
               <button
                 type="submit"
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
