@@ -1,0 +1,308 @@
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import Layout from "@/components/Layout.vue";
+import { nanoid } from "nanoid";
+import { useRouter } from "vue-router";
+import { Toaster, toast } from "vue-sonner";
+
+interface Ticket {
+  id?: string;
+  title: string;
+  description?: string;
+  status: "open" | "in_progress" | "closed";
+}
+
+const router = useRouter();
+const tickets = ref<Ticket[]>([]);
+const showEditBox = ref(false);
+const editTicket = ref<Ticket | null>(null);
+
+// Form for creating new ticket
+const newTicket = ref<Ticket>({
+  title: "",
+  description: "",
+  status: "open",
+});
+const createErrors = ref<{ title?: string }>({});
+
+// Edit form errors
+const editErrors = ref<{ title?: string }>({});
+
+// Load tickets
+onMounted(() => {
+  const session = localStorage.getItem("ticketapp_session");
+  if (!session) {
+    toast.error("Unauthorized access — please log in.", { duration: 3000 });
+    router.push("/auth/login");
+    return;
+  }
+  const stored = JSON.parse(localStorage.getItem("ticketapp_tickets") || "[]");
+  tickets.value = stored;
+});
+
+function saveTickets(updated: Ticket[]) {
+  tickets.value = updated;
+  localStorage.setItem("ticketapp_tickets", JSON.stringify(updated));
+}
+
+// Create ticket with validation
+function createTicket() {
+  createErrors.value = {};
+  if (!newTicket.value.title.trim()) {
+    createErrors.value.title = "Title is required";
+    toast.error("Title is required", {
+      duration: 2000,
+      position: "top-center",
+    });
+    return;
+  }
+  const ticket = { ...newTicket.value, id: nanoid() };
+  saveTickets([...tickets.value, ticket]);
+  newTicket.value = { title: "", description: "", status: "open" };
+  toast.success("Ticket created successfully!", {
+    duration: 2000,
+    position: "top-center",
+  });
+}
+
+// Delete ticket
+function deleteTicket(id: string) {
+  if (confirm("Delete this ticket?")) {
+    const updated = tickets.value.filter((t) => t.id !== id);
+    saveTickets(updated);
+    toast.success("Ticket deleted successfully!", {
+      duration: 2000,
+      position: "top-center",
+    });
+  }
+}
+
+// Open edit box
+function openEditBox(ticket: Ticket) {
+  editTicket.value = { ...ticket };
+  editErrors.value = {};
+  showEditBox.value = true;
+}
+
+// Update ticket with validation
+function updateTicket() {
+  if (!editTicket.value) return;
+  editErrors.value = {};
+  if (!editTicket.value.title?.trim()) {
+    editErrors.value.title = "Title is required";
+    toast.error("Title is required", {
+      duration: 2000,
+      position: "top-center",
+    });
+    return;
+  }
+  const updated = tickets.value.map((t) =>
+    t.id === editTicket.value?.id ? editTicket.value : t
+  );
+  saveTickets(updated);
+  showEditBox.value = false;
+  editTicket.value = null;
+  toast.success("Ticket updated successfully!", {
+    duration: 2000,
+    position: "top-center",
+  });
+}
+
+// Status color helper
+function statusColor(status: string) {
+  switch (status) {
+    case "open":
+      return "bg-green-100 text-green-700";
+    case "in_progress":
+      return "bg-yellow-100 text-yellow-700";
+    case "closed":
+      return "bg-gray-100 text-gray-700";
+  }
+}
+</script>
+
+<template>
+  <Layout>
+    <!-- Global Toaster for Sonner -->
+    <Toaster position="top-center" rich-colors expand />
+
+    <section class="py-16 max-w-[1440px] mx-auto px-6">
+      <h1 class="text-3xl font-bold text-blue-700 mb-10 text-center">
+        Ticket Management
+      </h1>
+
+      <!-- Create Ticket Form -->
+      <div
+        class="bg-white p-6 rounded-2xl shadow-lg border border-blue-100 max-w-2xl mx-auto mb-10"
+      >
+        <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">
+          Create New Ticket
+        </h2>
+
+        <form @submit.prevent="createTicket" class="space-y-4">
+          <div>
+            <input
+              v-model="newTicket.title"
+              placeholder="Ticket title"
+              :class="[
+                'w-full border rounded-lg p-2 focus:ring-2',
+                createErrors.title
+                  ? 'border-red-500 focus:ring-red-400'
+                  : 'border-gray-300 focus:ring-blue-400',
+              ]"
+            />
+            <p v-if="createErrors.title" class="text-red-500 text-sm mt-1">
+              {{ createErrors.title }}
+            </p>
+          </div>
+
+          <textarea
+            v-model="newTicket.description"
+            placeholder="Description (optional)"
+            rows="3"
+            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
+          ></textarea>
+
+          <select
+            v-model="newTicket.status"
+            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="closed">Closed</option>
+          </select>
+
+          <button
+            type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
+          >
+            Create Ticket
+          </button>
+        </form>
+      </div>
+
+      <!-- Ticket Grid -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-if="tickets.length === 0"
+          class="col-span-full text-gray-500 text-center"
+        >
+          No tickets available.
+        </div>
+
+        <div
+          v-for="ticket in tickets"
+          :key="ticket.id"
+          class="relative bg-white p-5 rounded-2xl shadow-md border border-gray-100 hover:shadow-xl transition"
+        >
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="font-semibold text-lg text-gray-800">
+                {{ ticket.title }}
+              </h3>
+              <span
+                class="px-3 py-1 rounded-full text-sm font-medium"
+                :class="statusColor(ticket.status)"
+              >
+                {{ ticket.status.replace("_", " ") }}
+              </span>
+            </div>
+            <p v-if="ticket.description" class="text-gray-600 text-sm">
+              {{ ticket.description }}
+            </p>
+          </div>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button
+              class="px-4 py-1 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+              @click="openEditBox(ticket)"
+            >
+              Edit
+            </button>
+            <button
+              class="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              @click="deleteTicket(ticket.id!)"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shadow Edit Dropbox -->
+      <transition name="fade">
+        <div
+          v-if="showEditBox"
+          class="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
+        >
+          <div
+            class="bg-white shadow-2xl rounded-2xl p-6 w-full max-w-md relative"
+          >
+            <button
+              class="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              @click="showEditBox = false"
+            >
+              ✕
+            </button>
+
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">
+              Edit Ticket
+            </h3>
+
+            <form @submit.prevent="updateTicket" class="space-y-4">
+              <div>
+                <input
+                  v-model="editTicket.title"
+                  placeholder="Title"
+                  :class="[
+                    'w-full border rounded-lg p-2 focus:ring-2',
+                    editErrors.title
+                      ? 'border-red-500 focus:ring-red-400'
+                      : 'border-gray-300 focus:ring-blue-400',
+                  ]"
+                />
+                <p v-if="editErrors.title" class="text-red-500 text-sm mt-1">
+                  {{ editErrors.title }}
+                </p>
+              </div>
+
+              <textarea
+                v-model="editTicket.description"
+                placeholder="Description"
+                rows="3"
+                class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
+              ></textarea>
+
+              <select
+                v-model="editTicket.status"
+                class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="closed">Closed</option>
+              </select>
+
+              <button
+                type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
+      </transition>
+    </section>
+  </Layout>
+</template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
